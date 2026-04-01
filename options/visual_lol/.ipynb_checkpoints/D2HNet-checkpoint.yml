@@ -1,0 +1,73 @@
+#### general settings
+name: LOL_D2HNet
+use_tb_logger: True
+model: sr
+distortion: sr
+scale: 1
+save_img: True
+gpu_ids: [0]
+
+#### network structures
+network_G:
+  which_model_G: D2HNet
+  in_nc: 3
+  out_nc: 3
+  nf: 10
+  unf: 10
+  nb: 16
+  scale: 1
+
+#### datasets
+datasets:
+  train:
+    name: LOL
+    mode: LQGT_event
+    dataroot_GT: /data/chengzhicao/LOL_Blur/LOL_Blur/train/sharp
+    dataroot_LQ: /data/chengzhicao/LOL_Blur/LOL_Blur/train/blur
+    dataroot_event: /data/chengzhicao/LOL_Blur/LOL_Blur/train/mat
+    dataroot_event_H5: /data/chengzhicao/LOL_Blur/LOL_Blur/train/H5/input.h5
+    use_shuffle: true
+    n_workers: 0  # per GPU
+    batch_size: 2
+    GT_size: 192
+    use_flip: true
+    use_rot: true
+    color: RGB
+    scale: 1
+  val:
+    name: LOL_valid
+    mode: LQGT_event
+    dataroot_GT: /data/chengzhicao/LOL_Blur/LOL_Blur/test/sharp
+    dataroot_LQ: /data/chengzhicao/LOL_Blur/LOL_Blur/test/blur
+    dataroot_event: /data/chengzhicao/LOL_Blur/LOL_Blur/test/mat
+    dataroot_event_H5: /data/chengzhicao/LOL_Blur/LOL_Blur/test/H5/input.h5
+    scale: 1
+#### path
+path:
+  pretrain_model_G: ~
+  strict_load: true
+  resume_state: ~
+
+#### training settings: learning rate scheme, loss
+train:
+  lr_G: !!float 7e-4
+  lr_scheme: CosineAnnealingLR_Restart
+  beta1: 0.9
+  beta2: 0.99
+  niter: 10000
+  warmup_iter: -1  # no warm up
+  T_period: [250000, 250000, 250000, 250000]
+  restarts: [250000, 500000, 750000]
+  restart_weights: [1, 1, 1]
+  eta_min: !!float 1e-7
+
+  pixel_criterion: l1
+  pixel_weight: 1.0
+
+  manual_seed: 10
+  val_freq: !!float 9e3
+
+#### logger
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 5e7
