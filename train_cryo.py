@@ -30,8 +30,8 @@ def init_dist(backend='nccl', **kwargs):
 def main():
     #### options
     parser = argparse.ArgumentParser()
-    parser.add_argument('-opt', type=str,default='options/train_cryo/MemDeblur_10081.yml', help='Path to option YAML file.')
-    parser.add_argument('-save_dir', type=str,default='/data/chengzhicao/NTURain/CryoEM_denoise/result', help='Path to option YAML file.')
+    parser.add_argument('-opt', type=str, default='options/train_cryo/SemanticAware_10017.yml', help='Path to option YAML file.')
+    parser.add_argument('-save_dir', type=str, default='results/val_images', help='Directory used to save validation images and metrics.')
     parser.add_argument('--launcher', choices=['none', 'pytorch'], default='none',
                         help='job launcher')
 
@@ -47,14 +47,15 @@ def main():
 
     def write_file(content):
         # w的意思:打开一个文件只用于写入。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件
-        with open(r"/output/{}.txt".format(name), "a") as op:
+        os.makedirs(args.save_dir, exist_ok=True)
+        with open(os.path.join(args.save_dir, '{}.txt'.format(name)), 'a') as op:
             op.write("{} \n".format(content))
-            op.close()
     
     
     
     
-    args.save_dir = os.path.join(args.save_dir,opt['name'])
+    args.save_dir = os.path.join(args.save_dir, opt['name'])
+    tb_logger = None
 
     #### distributed training settings
     if args.launcher == 'none':  # disabled distributed training
@@ -99,7 +100,7 @@ def main():
                 logger.info(
                     'You are using PyTorch {}. Tensorboard will use [tensorboardX]'.format(version))
                 from tensorboardX import SummaryWriter
-            tb_logger = SummaryWriter(log_dir='../tb_logger/' + opt['name'])
+            tb_logger = SummaryWriter(log_dir=os.path.join(opt['path']['root'], 'tb_logger', opt['name']))
     else:
         util.setup_logger('base', opt['path']['log'], 'train', level=logging.INFO, screen=True)
         logger = logging.getLogger('base')
@@ -196,7 +197,7 @@ def main():
                     logger.info(message)
             #### validation
             if opt['datasets'].get('val', None) and current_step % opt['train']['val_freq'] == 0:
-                if opt['model'] in ['sr', 'srgan', 'sr_event'] and rank <= 0:  # image restoration validation
+                if opt['model'] in ['sr', 'srgan', 'sr_event', 'semantic_sr'] and rank <= 0:  # image restoration validation
                     # does not support multi-GPU validation
 #                     pbar = util.ProgressBar(len(val_loader))
                     avg_psnr = 0.
@@ -353,7 +354,8 @@ def main():
         logger.info('Saving the final model.')
         model.save('latest')
         logger.info('End of training.')
-        tb_logger.close()
+        if tb_logger is not None:
+            tb_logger.close()
 
 
 if __name__ == '__main__':

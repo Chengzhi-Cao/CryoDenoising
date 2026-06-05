@@ -12,8 +12,12 @@ from models import create_model
 
 #### options
 parser = argparse.ArgumentParser()
-parser.add_argument('-opt', type=str, default='options/train_cryo/DCSFN_10017test.yml', help='Path to options YMAL file.')
-opt = option.parse(parser.parse_args().opt, is_train=False)
+parser.add_argument('-opt', type=str, default='options/test/SemanticAware_10017.yml',
+                    help='Path to options YAML file.')
+parser.add_argument('--with_gt', action='store_true',
+                    help='Calculate PSNR/SSIM when GT images are available.')
+args = parser.parse_args()
+opt = option.parse(args.opt, is_train=False)
 opt = option.dict_to_nonedict(opt)
 
 util.mkdirs(
@@ -47,16 +51,14 @@ for test_loader in test_loaders:
     test_results['ssim_y'] = []
 
     for data in test_loader:
-        # need_GT = False if test_loader.dataset.opt['dataroot_GT'] is None else True
-        need_GT = False
+        need_GT = args.with_gt and test_loader.dataset.opt.get('dataroot_GT') is not None
         model.feed_data(data, need_GT=need_GT)
         img_path = data['GT_path'][0] if need_GT else data['LQ_path'][0]
         img_name = osp.splitext(osp.basename(img_path))[0]
         
-        name_list = parts = dataset_dir.split("/")
-        data_name = name_list[2]
         print('img_name=',img_name)
-        model.feed_image_name(img_name,data_name)
+        if hasattr(model, 'feed_image_name'):
+            model.feed_image_name(img_name, test_set_name)
 
         model.test()
         visuals = model.get_current_visuals(need_GT=need_GT)

@@ -8,7 +8,8 @@ from torch.nn.parallel import DistributedDataParallel
 class BaseModel():
     def __init__(self, opt):
         self.opt = opt
-        self.device = torch.device('cuda' if opt['gpu_ids'] is not None else 'cpu')
+        use_cuda = opt['gpu_ids'] is not None and torch.cuda.is_available()
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
         self.is_train = opt['is_train']
         self.schedulers = []
         self.optimizers = []

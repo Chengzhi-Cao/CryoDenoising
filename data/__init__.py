@@ -32,6 +32,8 @@ def create_dataset(dataset_opt):
         from data.LQ_dataset import LQDataset as D
     elif mode == 'LQGT':
         from data.LQGT_dataset import LQGTDataset as D
+    elif mode == 'LQGT_semantic':
+        from data.LQGT_semantic_dataset import LQGTSemanticDataset as D
     elif mode == 'LQGT_event':
         from data.LQGT_dataset_mat import LQGTDataset_mat as D
     elif mode == 'LQGT_event_SR':

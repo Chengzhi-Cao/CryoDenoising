@@ -7,6 +7,8 @@ def create_model(opt):
     # image restoration
     if model == 'sr':  # PSNR-oriented super resolution
         from .SR_model import SRModel as M
+    elif model == 'semantic_sr':
+        from .Semantic_SR_model import SemanticSRModel as M
     elif model == 'sr_event':  # PSNR-oriented super resolution
         from .SR_model_event import SRModel as M
     # video restoration

@@ -1,141 +1,138 @@
-import torch
+"""Network factory.
+
+The original file imported every historical baseline at module import time.
+Several of those source folders are not present in this repository, so even
+valid configurations failed before model selection happened. Keep imports lazy
+and report missing architectures only when they are requested.
+"""
 
 
-# Deblur
-import models.archs_deblur.eSL_deblur as eSL_deblur
-import models.archs_deblur.EVDI as EVDI
-import models.archs_deblur.MemDeblur as MemDeblur
-import models.archs_deblur.PAN_deblur as PAN_deblur
-import models.archs_deblur.STRA1 as STRA1
-# import models.archs_deblur.STRAHN1 as STRAHN1
-import models.archs_deblur.CCZ as CCZ
-
-# LOL_Blur
-import models.archs_deblur.D2HNet as D2HNet
-import models.archs_deblur.D2Net as D2Net
-import models.archs_deblur.EFNet as EFNet
-import models.archs_deblur.ERDN as ERDN
-import models.archs_deblur.RED_Net as RED_Net
-import models.archs_deblur.STFAN as STFAN
-import models.archs_deblur.STRAHN_deblur as STRAHN_deblur
-import models.archs_deblur.UEVD as UEVD
-import models.archs_deblur.LEDVI as LEDVI
+def _get(opt_net, key, default=None):
+    value = opt_net.get(key, default)
+    return default if value is None else value
 
 
-# Derain
-import models.archs_derain.JDNet as JDNet
-import models.archs_derain.MPRNet as MPRNet
-import models.archs_derain.RIDNet as RIDNet
-import models.archs_derain.RLNet as RLNet
-import models.archs_derain.VRGNet as VRGNet
-import models.archs_derain.SPANet as SPANet
-import models.archs_derain.DuRN as DuRN
-import models.archs_derain.DCSFN as DCSFN
-import models.archs_derain.DCSFN_visual as DCSFN_visual
-
-import models.archs_derain.JDNet_event as JDNet_event
-import models.archs_derain.MPRNet_event as MPRNet_event
-import models.archs_derain.RIDNet_event as RIDNet_event
-import models.archs_derain.RLNet_event as RLNet_event
-import models.archs_derain.VRGNet_event as VRGNet_event
-import models.archs_derain.SPANet_event as SPANet_event
-import models.archs_derain.DuRN_event as DuRN_event
-import models.archs_derain.DCSFN_event as DCSFN_event
-import models.archs_derain.ESTIL as ESTIL
-import models.archs_derain.ESTIL_event as ESTIL_event
-# import models.archs_derain.STRAHN_visual as STRAHN_visual
+def _missing(which_model):
+    missing = [
+        'JDNet', 'MPRNet', 'RIDNet', 'RLNet', 'VRGNet', 'SPANet', 'DuRN',
+        'DCSFN', 'DCSFN_visual', 'JDNet_event', 'MPRNet_event',
+        'RIDNet_event', 'RLNet_event', 'VRGNet_event', 'SPANet_event',
+        'DuRN_event', 'DCSFN_event', 'ESTIL', 'ESTIL_event',
+        'eSL_Net_deblur', 'EVDI', 'MemDeblur', 'PAN_deblur', 'STRA1',
+        'D2HNet', 'D2Net', 'EFNet', 'ERDN', 'RED_Net', 'STFAN',
+        'STRAHN_deblur', 'UEVD', 'LEDVI'
+    ]
+    if which_model in missing:
+        raise NotImplementedError(
+            'Generator model [{}] is referenced by an option file, but its '
+            'source architecture is not included as an importable package in '
+            'this repository. Use one of the registered models in README.md '
+            'or add the missing source folder before running this config.'
+            .format(which_model))
+    raise NotImplementedError(
+        'Generator model [{}] is not recognized.'.format(which_model))
 
 
-
-
-# Generator
 def define_G(opt):
     opt_net = opt['network_G']
     which_model = opt_net['which_model_G']
 
-    ################################### derain
-    if which_model == 'JDNet':
-        netG = JDNet.JDNet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'MPRNet':
-        netG = MPRNet.MPRNet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'RIDNet':
-        netG = RIDNet.RIDNet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'RLNet':
-        netG = RLNet.RLNet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'VRGNet':
-        netG = VRGNet.VRGNet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'DCSFN':
-        netG = DCSFN.DCSFN(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'DCSFN_visual':
-        netG = DCSFN_visual.DCSFN(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
+    if which_model == 'SemanticAwareDenoiser':
+        from models.archs.semantic_aware_denoiser import SemanticAwareDenoiser
+        return SemanticAwareDenoiser(
+            in_nc=_get(opt_net, 'in_nc', 3),
+            mask_nc=_get(opt_net, 'mask_nc', 1),
+            out_nc=_get(opt_net, 'out_nc', 3),
+            nf=_get(opt_net, 'nf', 48),
+            num_blocks=_get(opt_net, 'num_blocks', 4),
+            num_sf_blocks=_get(opt_net, 'num_sf_blocks', 3),
+            patch_grid=_get(opt_net, 'patch_grid', 8))
 
+    if which_model == 'PAN':
+        import models.archs.PAN_arch as PAN_arch
+        return PAN_arch.PAN(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'],
+            scale=opt_net['scale'])
 
-    elif which_model == 'SPANet':
-        netG = SPANet.SPANet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'DuRN':
-        netG = DuRN.DuRN(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'ESTIL':
-        netG = ESTIL.ESTIL()
+    if which_model == 'PAN_Event1':
+        import models.archs.PAN_event1_arch as PAN_event1_arch
+        return PAN_event1_arch.PAN_Event_1(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'],
+            scale=opt_net['scale'])
 
-    elif which_model == 'JDNet_event':
-        netG = JDNet_event.JDNet_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'MPRNet_event':
-        netG = MPRNet_event.MPRNet_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'RIDNet_event':
-        netG = RIDNet_event.RIDNet_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'RLNet_event':
-        netG = RLNet_event.RLNet_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'VRGNet_event':
-        netG = VRGNet_event.VRGNet_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'DCSFN_event':
-        netG = DCSFN_event.DCSFN_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'SPANet_event':
-        netG = SPANet_event.SPANet_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'DuRN_event':
-        netG = DuRN_event.DuRN_event(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'ESTIL_event':
-        netG = ESTIL_event.ESTIL_event()
+    if which_model == 'PAN_Event2':
+        import models.archs.PAN_event2_arch as PAN_event2_arch
+        return PAN_event2_arch.PAN_Event_2(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'],
+            scale=opt_net['scale'])
 
+    if which_model == 'PAN_Event3':
+        import models.archs.PAN_event3_arch as PAN_event3_arch
+        return PAN_event3_arch.PAN_Event_3(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'],
+            scale=opt_net['scale'])
 
-    ################################### deblur
-    elif which_model == 'eSL_Net_deblur':
-        netG = eSL_deblur.eSL_Net_deblur(scale=opt_net['scale'])
-    elif which_model == 'STRA1':
-        netG = STRA1.STRA1(num_res=opt_net['num_res'])
-    elif which_model == 'EVDI':
-        netG = EVDI.EVDI(in_nc=opt_net['in_nc'],out_nc=opt_net['out_nc'],nf=opt_net['nf'],unf=opt_net['unf'],nb=opt_net['nb'],scale=opt_net['scale'])
-    elif which_model == 'MemDeblur':
-        netG = MemDeblur.MemDeblur(in_nc=opt_net['in_nc'],out_nc=opt_net['out_nc'],nf=opt_net['nf'],unf=opt_net['unf'],nb=opt_net['nb'],scale=opt_net['scale'])
-    elif which_model == 'PAN_deblur':
-        netG = PAN_deblur.PAN_deblur(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], nb=opt_net['nb'], upscale=opt_net['scale'])
-#     elif which_model == 'STRANH_visual':
-#         netG = STRAHN_visual.STRAHN_visual(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'], scale=opt_net['scale'])
-#     elif which_model == 'STRANH1':
-#         netG = STRAHN1.STRAHN1(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'], scale=opt_net['scale'])
-        ##################################
-    elif which_model == 'D2HNet':
-        netG = D2HNet.D2HNet(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'])
-    elif which_model == 'D2Net':
-        netG = D2Net.D2Net(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'], scale=opt_net['scale'])
-    elif which_model == 'EFNet':
-        netG = EFNet.EFNet(in_nc=opt_net['in_nc'])
-    elif which_model == 'ERDN':
-        netG = ERDN.ERDN(in_channels=opt_net['in_nc'])
-    elif which_model == 'RED_Net':
-        netG = RED_Net.RED_Net(in_nc=opt_net['in_nc'])
-    elif which_model == 'STFAN':
-        netG = STFAN.STFAN_Net(input_channel=opt_net['in_nc'])
-    elif which_model == 'STRAHN_deblur':
-        netG = STRAHN_deblur.STRAHN(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'], scale=opt_net['scale'])
-    elif which_model == 'UEVD':
-        netG = UEVD.UEVD(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'], scale=opt_net['scale'])
-    elif which_model == 'LEDVI':
-        netG = LEDVI.LEDVI(in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'], scale=opt_net['scale'])
-        
-        
-    else:
-        raise NotImplementedError('Generator model [{:s}] not recognized'.format(which_model))
+    if which_model == 'PAN_Event4':
+        import models.archs.PAN_event4_arch as PAN_event4_arch
+        return PAN_event4_arch.PAN_Event_4(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'],
+            scale=opt_net['scale'])
 
-    return netG
+    if which_model == 'PAN_Event5':
+        import models.archs.PAN_event5_arch as PAN_event5_arch
+        return PAN_event5_arch.PAN_Event_5(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], unf=opt_net['unf'], nb=opt_net['nb'],
+            scale=opt_net['scale'])
 
+    if which_model == 'eSL':
+        import models.archs.eSL as eSL
+        return eSL.eSL_Net(scale=opt_net['scale'])
 
+    if which_model == 'e2sri':
+        import models.archs.e2sri as e2sri
+        return e2sri.SRNet(
+            scale=opt_net['scale'],
+            base1_channels=_get(opt_net, 'base1_channels', 16),
+            base2_channels=_get(opt_net, 'base2_channels', 32))
+
+    if which_model == 'DCSR':
+        import models.archs.dcsr as dcsr
+        return dcsr.DCSR(scale=opt_net['scale'], n_feats=opt_net['n_feats'])
+
+    if which_model == 'TDAN':
+        import models.archs.TDAN_model as TDAN
+        return TDAN.TDAN_VSR()
+
+    if which_model == 'DPT':
+        import models.archs.DPT as DPT
+        return DPT.DPT_Net(angRes=_get(opt_net, 'angRes', 5),
+                           factor=opt_net['scale'])
+
+    if which_model == 'SPADE':
+        import models.archs.spade_e2v as SPADE
+        return SPADE.Unet6(scale=opt_net['scale'])
+
+    if which_model == 'MSRResNet_PA':
+        import models.archs.SRResNet_arch as SRResNet_arch
+        return SRResNet_arch.MSRResNet_PA(
+            in_nc=opt_net['in_nc'], out_nc=opt_net['out_nc'],
+            nf=opt_net['nf'], nb=opt_net['nb'], upscale=opt_net['scale'])
+
+    if which_model == 'RCAN_PA':
+        import models.archs.RCAN_arch as RCAN_arch
+        return RCAN_arch.RCAN_PA(
+            n_resgroups=opt_net['n_resgroups'],
+            n_resblocks=opt_net['n_resblocks'],
+            n_feats=opt_net['n_feats'],
+            res_scale=opt_net['res_scale'],
+            n_colors=opt_net['n_colors'],
+            rgb_range=opt_net['rgb_range'],
+            scale=opt_net['scale'])
+
+    _missing(which_model)

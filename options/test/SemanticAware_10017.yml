@@ -1,0 +1,44 @@
+#### general settings
+name: SemanticAware_10017
+suffix: ~
+model: semantic_sr
+distortion: sr
+scale: 1
+crop_border: ~
+save_img: true
+gpu_ids: [0]
+
+#### datasets
+datasets:
+  test_10017:
+    name: cryo_test_10017
+    mode: LQGT_semantic
+    dataroot_GT: datasets/10017/even
+    dataroot_LQ: datasets/10017/odd
+    dataroot_mask: datasets/10017/masks
+    color: RGB
+    mask_threshold: 0.5
+    scale: 1
+
+#### network structures
+network_G:
+  which_model_G: SemanticAwareDenoiser
+  in_nc: 3
+  mask_nc: 1
+  out_nc: 3
+  nf: 48
+  num_blocks: 3
+  num_sf_blocks: 2
+  patch_grid: 8
+  scale: 1
+
+#### path
+path:
+  pretrain_model_G: experiments/SemanticAware_10017/models/latest_G.pth
+  strict_load: true
+  resume_state: ~
+
+#### dummy training block required by the model wrapper
+train:
+  pixel_criterion: mse
+  pixel_weight: 1.0

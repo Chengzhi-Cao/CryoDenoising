@@ -22,3 +22,14 @@ rad.json
 TestResults.xml
 
 test.zip
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+experiments/
+results/
+tb_logger/
+datasets/
+*.pth
+*.state
